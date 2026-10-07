@@ -58,6 +58,8 @@ class SalonGlittService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (data.containsKey('access_token')) {
           _token = data['access_token'].toString();
+        } else {
+          throw Exception('La API no devolvió el campo access_token.');
         }
         return data;
       } else {
@@ -70,14 +72,12 @@ class SalonGlittService {
 
   /// Registro de nuevo usuario (POST /api/v1/auth/register)
   Future<Map<String, dynamic>> register({
-    required String nombre,
-    required String apellido,
+    required String nombreuser,
     required String email,
     required String password,
     String? telefono,
   }) async {
     final url = Uri.parse('$baseUrl${ApiConfig.register}');
-    final nombreCompleto = '$nombre $apellido'.trim();
 
     try {
       final response = await http
@@ -85,7 +85,7 @@ class SalonGlittService {
             url,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'nombreuser': nombreCompleto,
+              'nombreuser': nombreuser,
               'email': email,
               'password': password,
               if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,

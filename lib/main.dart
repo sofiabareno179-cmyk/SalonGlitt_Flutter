@@ -8,21 +8,15 @@ void main() {
 }
 
 class SalonGlittColors {
-  // Paleta Morado, Rosa y Dorado
-  static const Color deepPurple = Color(0xFF2E0854); // Morado profundo elegante
-  static const Color royalPurple = Color(0xFF5B1889); // Morado intermedio
-  static const Color brightPurple = Color(0xFF7B1FA2); // Morado vivo
-  static const Color hotPink = Color(0xFFE91E63); // Rosa vibrante
-  static const Color softPink = Color(0xFFFCE4EC); // Rosa pastel suave
-  static const Color lightBlush = Color(0xFFFAF5FA); // Fondo suave
-  static const Color metallicGold = Color(
-    0xFFD4AF37,
-  ); // Dorado clásico metálico
-  static const Color lightGold = Color(0xFFFFE082); // Dorado brillante claro
-  static const Color darkGold = Color(0xFFA67C1E); // Dorado oscuro para bordes
-  static const Color terminalBg = Color(
-    0xFF180326,
-  ); // Morado oscuro para consola
+  static const Color deepPurple = Color(0xFF2E0854);
+  static const Color royalPurple = Color(0xFF5B1889);
+  static const Color brightPurple = Color(0xFF7B1FA2);
+  static const Color hotPink = Color(0xFFE91E63);
+  static const Color softPink = Color(0xFFFCE4EC);
+  static const Color lightBlush = Color(0xFFFAF5FA);
+  static const Color metallicGold = Color(0xFFD4AF37);
+  static const Color lightGold = Color(0xFFFFE082);
+  static const Color terminalBg = Color(0xFF180326);
 }
 
 class SalonGlittApp extends StatelessWidget {
@@ -31,7 +25,7 @@ class SalonGlittApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SalonGlitt App',
+      title: 'SalonGlitt',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: SalonGlittColors.lightBlush,
@@ -50,36 +44,33 @@ class SalonGlittApp extends StatelessWidget {
 }
 
 class SalonGlittHomePage extends StatefulWidget {
-  const SalonGlittHomePage({super.key});
+  const SalonGlittHomePage({super.key, this.apiService});
+
+  final SalonGlittService? apiService;
 
   @override
   State<SalonGlittHomePage> createState() => _SalonGlittHomePageState();
 }
 
 class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
-  final SalonGlittService _apiService = SalonGlittService();
-
-  // Controladores de texto para Login
+  late final SalonGlittService _apiService;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Controladores para Registro
-  final TextEditingController _regNombreController = TextEditingController();
-  final TextEditingController _regApellidoController = TextEditingController();
-  final TextEditingController _regEmailController = TextEditingController();
-  final TextEditingController _regPasswordController = TextEditingController();
-  final TextEditingController _regTelefonoController = TextEditingController();
+  final TextEditingController _nombreuserController = TextEditingController();
+  final TextEditingController _telefonoController = TextEditingController();
 
   bool _isRegisterMode = false;
   bool _isLoading = false;
-  String _statusMessage = 'Conectando a SGE-API desplegada...';
+  bool _isCheckingHealth = false;
   bool _isOnline = false;
   bool _isPasswordVisible = false;
+  String _statusMessage = 'Comprobando el estado del servicio...';
+  List<Map<String, dynamic>> _services = [];
 
   @override
   void initState() {
     super.initState();
-    // Comprobamos automáticamente el estado de la API al iniciar
+    _apiService = widget.apiService ?? SalonGlittService();
     _checkServerHealth();
   }
 
@@ -87,863 +78,904 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _regNombreController.dispose();
-    _regApellidoController.dispose();
-    _regEmailController.dispose();
-    _regPasswordController.dispose();
-    _regTelefonoController.dispose();
+    _nombreuserController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
 
-  // 1. Probar conexión a /health
   Future<void> _checkServerHealth() async {
-    setState(() {
-      _isLoading = true;
-      _statusMessage =
-          'Comprobando conexión con ${ApiConfig.baseUrl}/health...';
-    });
-
+    setState(() => _isCheckingHealth = true);
     try {
-      final res = await _apiService.checkHealth();
-      setState(() {
-        _isOnline = true;
-        _statusMessage = '¡API Conectada y Operativa!\nRespuesta: $res';
-      });
-    } catch (e) {
-      setState(() {
-        _isOnline = false;
-        _statusMessage = 'Error al conectar con la API:\n$e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // 2. Iniciar sesión con JWT (/api/v1/auth/login)
-  Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SalonGlittColors.hotPink,
-          content: Text('Por favor completa correo electrónico y contraseña'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _statusMessage = 'Iniciando sesión en ${ApiConfig.login}...';
-    });
-
-    try {
-      final response = await _apiService.login(
-        email: email,
-        password: password,
-      );
-      // Tras el login exitoso, cargamos el perfil del usuario
-      final profile = await _apiService.getProfile();
-
+      final health = await _apiService.checkHealth();
+      if (!mounted) return;
       setState(() {
         _isOnline = true;
         _statusMessage =
-            '¡Bienvenido, ${profile['nombre']} ${profile['apellido']}!\n\nToken JWT:\n${_apiService.token}';
+            '${health['service'] ?? 'SGE-API'} está disponible '
+            '(versión ${health['version'] ?? 'desconocida'}).';
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: SalonGlittColors.royalPurple,
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.auto_awesome,
-                  color: SalonGlittColors.metallicGold,
-                ),
-                const SizedBox(width: 8),
-                Text('¡Bienvenido a SalonGlitt, ${profile['nombre']}!'),
-              ],
-            ),
-          ),
-        );
-      }
-    } catch (e) {
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
-        _statusMessage = 'Error en el inicio de sesión:\n$e';
+        _isOnline = false;
+        _statusMessage = 'No se pudo conectar con la API: $error';
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: SalonGlittColors.hotPink,
-            content: Text('Error: $e'),
-          ),
-        );
-      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isCheckingHealth = false);
     }
   }
 
-  // 3. Registrar nuevo usuario (/api/v1/auth/register)
-  Future<void> _handleRegister() async {
-    final nombre = _regNombreController.text.trim();
-    final apellido = _regApellidoController.text.trim();
-    final email = _regEmailController.text.trim();
-    final password = _regPasswordController.text.trim();
-    final telefono = _regTelefonoController.text.trim();
-
-    if (nombre.isEmpty ||
-        apellido.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SalonGlittColors.hotPink,
-          content: Text('Completa todos los campos obligatorios'),
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: isError
+              ? SalonGlittColors.hotPink
+              : SalonGlittColors.royalPurple,
+          content: Text(message),
         ),
+      );
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.length < 3 || email.length > 100) {
+      _showMessage(
+        'El correo debe tener entre 3 y 100 caracteres.',
+        isError: true,
+      );
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      _showMessage(
+        'La contraseña debe tener entre 8 y 128 caracteres.',
+        isError: true,
       );
       return;
     }
 
-    if (password.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SalonGlittColors.hotPink,
-          content: Text('La contraseña debe tener al menos 8 caracteres'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _statusMessage = 'Registrando usuario en ${ApiConfig.register}...';
-    });
-
+    setState(() => _isLoading = true);
     try {
-      final result = await _apiService.register(
-        nombre: nombre,
-        apellido: apellido,
+      await _apiService.login(email: email, password: password);
+      final profile = await _apiService.getProfile();
+      final nombreuser = profile['nombreuser']?.toString() ?? 'cliente';
+      if (!mounted) return;
+      setState(() {
+        _isOnline = true;
+        _statusMessage = 'Sesión iniciada como $nombreuser.';
+      });
+      _showMessage('¡Bienvenido/a, $nombreuser!');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _statusMessage = 'No se pudo iniciar sesión: $error');
+      _showMessage('No se pudo iniciar sesión: $error', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleRegister() async {
+    final nombreuser = _nombreuserController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final telefono = _telefonoController.text.trim();
+
+    if (nombreuser.isEmpty || nombreuser.length > 100) {
+      _showMessage(
+        'El nombre debe tener entre 1 y 100 caracteres.',
+        isError: true,
+      );
+      return;
+    }
+    if (email.length < 3 || email.length > 100) {
+      _showMessage(
+        'El correo debe tener entre 3 y 100 caracteres.',
+        isError: true,
+      );
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      _showMessage(
+        'La contraseña debe tener entre 8 y 128 caracteres.',
+        isError: true,
+      );
+      return;
+    }
+    if (telefono.length > 20) {
+      _showMessage(
+        'El teléfono no debe superar los 20 caracteres.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final user = await _apiService.register(
+        nombreuser: nombreuser,
         email: email,
         password: password,
-        telefono: telefono.isNotEmpty ? telefono : null,
+        telefono: telefono.isEmpty ? null : telefono,
       );
-
+      if (!mounted) return;
       setState(() {
-        _statusMessage = '¡Usuario registrado con éxito!\n$result';
+        _isOnline = true;
+        _statusMessage =
+            'Cuenta creada: ${user['nombreuser']} · ${user['email']} · '
+            'rol ${user['rol']}. Inicia sesión para continuar.';
         _isRegisterMode = false;
         _emailController.text = email;
-        _passwordController.text = password;
+        _passwordController.clear();
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.green,
-            content: Text('¡Cuenta creada! Ya puedes iniciar sesión.'),
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _statusMessage = 'Error al registrar:\n$e';
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: SalonGlittColors.hotPink,
-            content: Text('Error: $e'),
-          ),
-        );
-      }
+      _showMessage('Cuenta creada. Ya puedes iniciar sesión.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _statusMessage = 'No se pudo crear la cuenta: $error');
+      _showMessage('No se pudo crear la cuenta: $error', isError: true);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // 4. Consultar Servicios (/api/v1/servicios)
   Future<void> _fetchServicios() async {
-    setState(() {
-      _isLoading = true;
-      _statusMessage = 'Consultando catálogo de servicios...';
-    });
-
+    setState(() => _isLoading = true);
     try {
       final data = await _apiService.getAuthenticated(ApiConfig.servicios);
+      if (data is! List) {
+        throw const FormatException(
+          'La API esperaba devolver una lista de servicios.',
+        );
+      }
+      final services = <Map<String, dynamic>>[];
+      for (final item in data) {
+        if (item is! Map) {
+          throw const FormatException(
+            'La API devolvió un servicio con formato inválido.',
+          );
+        }
+        services.add(Map<String, dynamic>.from(item));
+      }
+      if (!mounted) return;
       setState(() {
-        _statusMessage = 'Servicios disponibles de SalonGlitt:\n$data';
+        _services = services;
+        _statusMessage = services.isEmpty
+            ? 'La API no tiene servicios registrados.'
+            : 'Se cargaron ${services.length} servicios desde ${ApiConfig.servicios}.';
       });
-    } catch (e) {
-      setState(() {
-        _statusMessage = 'Error al consultar servicios:\n$e';
-      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _statusMessage = 'No se pudieron cargar los servicios: $error',
+      );
+      _showMessage(
+        'No se pudieron cargar los servicios: $error',
+        isError: true,
+      );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _handleLogout() {
     setState(() {
       _apiService.logout();
+      _services = [];
       _statusMessage = 'Sesión cerrada.';
     });
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    String? helper,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      helperText: helper,
+      prefixIcon: Icon(icon, color: SalonGlittColors.royalPurple),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: const Color(0xFFFCFAFD),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE8DFEC)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE8DFEC)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: SalonGlittColors.royalPurple,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandHeader() {
+    return Row(
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [SalonGlittColors.royalPurple, SalonGlittColors.hotPink],
+            ),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: SalonGlittColors.royalPurple.withValues(alpha: 0.2),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.spa, color: SalonGlittColors.lightGold),
+        ),
+        const SizedBox(width: 12),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SalonGlitt',
+              style: TextStyle(
+                color: SalonGlittColors.deepPurple,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+            Text(
+              'Belleza, cuidado y bienestar',
+              style: TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+          ],
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isOnline
+                ? const Color(0xFFE9F7EF)
+                : const Color(0xFFFFF0F3),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.circle,
+                size: 9,
+                color: _isOnline
+                    ? const Color(0xFF25834A)
+                    : SalonGlittColors.hotPink,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                _isOnline ? 'API en línea' : 'API sin conexión',
+                style: TextStyle(
+                  color: _isOnline
+                      ? const Color(0xFF206D40)
+                      : SalonGlittColors.hotPink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWelcomePanel() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 390),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [SalonGlittColors.deepPurple, SalonGlittColors.royalPurple],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: SalonGlittColors.deepPurple.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            right: -6,
+            top: 4,
+            child: Icon(
+              Icons.auto_awesome,
+              color: SalonGlittColors.lightGold,
+              size: 34,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: SalonGlittColors.metallicGold.withValues(alpha: 0.8),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.spa_outlined,
+                  color: SalonGlittColors.lightGold,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 72),
+              Text(
+                _apiService.isAuthenticated
+                    ? 'Qué gusto verte de nuevo'
+                    : _isRegisterMode
+                    ? 'Tu momento de cuidado comienza aquí'
+                    : 'Un espacio para sentirte increíble',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                _apiService.isAuthenticated
+                    ? 'Consulta los servicios disponibles y encuentra tu próximo favorito.'
+                    : 'Accede a tus servicios y descubre una experiencia de belleza hecha para ti.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.82),
+                  fontSize: 15,
+                  height: 1.55,
+                ),
+              ),
+              const SizedBox(height: 26),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: SalonGlittColors.lightGold,
+                    size: 19,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Una experiencia sencilla, personal y segura',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 26),
+              Text(
+                'CONECTADO A SGE-API',
+                style: TextStyle(
+                  color: SalonGlittColors.lightGold.withValues(alpha: 0.9),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                ApiConfig.baseUrl,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthPanel() {
+    if (_apiService.isAuthenticated) return _buildAccountPanel();
+
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF0E8F2)),
+        boxShadow: [
+          BoxShadow(
+            color: SalonGlittColors.deepPurple.withValues(alpha: 0.07),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _isRegisterMode ? 'Crear cuenta' : 'Bienvenida de vuelta',
+            style: const TextStyle(
+              color: SalonGlittColors.deepPurple,
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            _isRegisterMode
+                ? 'Completa tus datos para unirte a SalonGlitt.'
+                : 'Inicia sesión para continuar con tu experiencia.',
+            style: const TextStyle(color: Colors.black54, height: 1.4),
+          ),
+          const SizedBox(height: 24),
+          if (_isRegisterMode) ...[
+            TextField(
+              key: const Key('nombreuser-field'),
+              controller: _nombreuserController,
+              maxLength: 100,
+              textCapitalization: TextCapitalization.words,
+              decoration: _inputDecoration(
+                label: 'Nombre completo',
+                icon: Icons.person_outline,
+                helper: 'El mismo campo nombreuser que recibe la API.',
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          TextField(
+            key: const Key('email-field'),
+            controller: _emailController,
+            maxLength: 100,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autocorrect: false,
+            decoration: _inputDecoration(
+              label: 'Correo electrónico',
+              icon: Icons.alternate_email_rounded,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_isRegisterMode) ...[
+            TextField(
+              key: const Key('telefono-field'),
+              controller: _telefonoController,
+              maxLength: 20,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              decoration: _inputDecoration(
+                label: 'Teléfono (opcional)',
+                icon: Icons.phone_outlined,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          TextField(
+            key: const Key('password-field'),
+            controller: _passwordController,
+            maxLength: 128,
+            obscureText: !_isPasswordVisible,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) =>
+                _isRegisterMode ? _handleRegister() : _handleLogin(),
+            decoration: _inputDecoration(
+              label: 'Contraseña',
+              icon: Icons.lock_outline_rounded,
+              helper: _isRegisterMode ? 'Entre 8 y 128 caracteres.' : null,
+              suffix: IconButton(
+                tooltip: _isPasswordVisible
+                    ? 'Ocultar contraseña'
+                    : 'Mostrar contraseña',
+                onPressed: () =>
+                    setState(() => _isPasswordVisible = !_isPasswordVisible),
+                icon: Icon(
+                  _isPasswordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: SalonGlittColors.royalPurple,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: _isLoading
+                  ? null
+                  : _isRegisterMode
+                  ? _handleRegister
+                  : _handleLogin,
+              style: FilledButton.styleFrom(
+                backgroundColor: SalonGlittColors.royalPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: _isLoading
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      _isRegisterMode ? Icons.person_add_alt_1 : Icons.login,
+                    ),
+              label: Text(
+                _isLoading
+                    ? 'Conectando...'
+                    : _isRegisterMode
+                    ? 'Crear mi cuenta'
+                    : 'Iniciar sesión',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: _isLoading
+                ? null
+                : () => setState(() => _isRegisterMode = !_isRegisterMode),
+            child: Text(
+              _isRegisterMode
+                  ? '¿Ya tienes cuenta? Inicia sesión'
+                  : '¿Primera vez aquí? Crea tu cuenta',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountPanel() {
+    final user = _apiService.currentUser ?? const <String, dynamic>{};
+    final name = user['nombreuser']?.toString() ?? 'Cliente';
+    final email = user['email']?.toString() ?? '';
+    final phone = user['telefono']?.toString();
+    final role = user['rol']?.toString() ?? 'cliente';
+
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF0E8F2)),
+        boxShadow: [
+          BoxShadow(
+            color: SalonGlittColors.deepPurple.withValues(alpha: 0.07),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Tu cuenta',
+            style: TextStyle(
+              color: SalonGlittColors.deepPurple,
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 22),
+          CircleAvatar(
+            radius: 29,
+            backgroundColor: SalonGlittColors.softPink,
+            child: Text(
+              name.isEmpty ? 'S' : name[0].toUpperCase(),
+              style: const TextStyle(
+                color: SalonGlittColors.royalPurple,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            name,
+            style: const TextStyle(
+              color: SalonGlittColors.deepPurple,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(email, style: const TextStyle(color: Colors.black54)),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _accountTag(Icons.badge_outlined, 'Rol: $role'),
+              if (phone != null && phone.isNotEmpty)
+                _accountTag(Icons.phone_outlined, phone),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _isLoading ? null : _fetchServicios,
+                  icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                  label: const Text('Ver servicios'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: SalonGlittColors.royalPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: _isLoading ? null : _handleLogout,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: SalonGlittColors.hotPink,
+                  side: const BorderSide(color: SalonGlittColors.hotPink),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 12,
+                  ),
+                ),
+                child: const Icon(Icons.logout_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accountTag(IconData icon, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: SalonGlittColors.lightBlush,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: SalonGlittColors.royalPurple),
+          const SizedBox(width: 6),
+          Text(value, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApiStatus() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF0E8F2)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isOnline ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+            color: _isOnline
+                ? const Color(0xFF25834A)
+                : SalonGlittColors.hotPink,
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? 'Servicio disponible' : 'Estado de la API',
+                  style: const TextStyle(
+                    color: SalonGlittColors.deepPurple,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _statusMessage,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Comprobar conexión',
+            onPressed: _isCheckingHealth ? null : _checkServerHealth,
+            icon: _isCheckingHealth
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServices() {
+    if (!_apiService.isAuthenticated || _services.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Servicios disponibles',
+          style: TextStyle(
+            color: SalonGlittColors.deepPurple,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ..._services.map((service) {
+          final rawPrice = service['precio'];
+          final price = rawPrice is num
+              ? rawPrice
+              : num.tryParse(rawPrice?.toString() ?? '');
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFF0E8F2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: SalonGlittColors.softPink,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.spa_outlined,
+                    color: SalonGlittColors.royalPurple,
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service['nombre']?.toString() ?? 'Servicio',
+                        style: const TextStyle(
+                          color: SalonGlittColors.deepPurple,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${service['categoria'] ?? 'Sin categoría'} · '
+                        '${service['duracion'] ?? 'Duración no indicada'}',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  price == null ? 'Consultar' : price.toStringAsFixed(2),
+                  style: const TextStyle(
+                    color: SalonGlittColors.royalPurple,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(65),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                SalonGlittColors.deepPurple,
-                SalonGlittColors.royalPurple,
-                SalonGlittColors.hotPink,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 6,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: SalonGlittColors.metallicGold,
-                        width: 2,
-                      ),
-                      color: Colors.white.withOpacity(0.15),
-                    ),
-                    child: const Icon(
-                      Icons.spa,
-                      color: SalonGlittColors.lightGold,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'SalonGlitt API',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'SGE-API Desplegada • Online',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: SalonGlittColors.lightGold,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.auto_awesome,
-                    color: SalonGlittColors.metallicGold,
-                    size: 24,
-                  ),
-                ],
-              ),
-            ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFCF8FD), SalonGlittColors.lightBlush],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Banner de Estado del Servidor
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
-                  colors: [Colors.white, Color(0xFFFFF9FC)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: SalonGlittColors.metallicGold.withOpacity(0.6),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: SalonGlittColors.royalPurple.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _isOnline
-                          ? Colors.green.withOpacity(0.15)
-                          : SalonGlittColors.softPink,
-                      border: Border.all(
-                        color: _isOnline
-                            ? Colors.green
-                            : SalonGlittColors.hotPink,
-                        width: 1.8,
-                      ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 900;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isWide ? 32 : 20,
+                      vertical: 24,
                     ),
-                    child: Icon(
-                      _isOnline ? Icons.check_circle : Icons.cloud_outlined,
-                      color: _isOnline
-                          ? Colors.green
-                          : SalonGlittColors.hotPink,
-                      size: 25,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          _isOnline ? 'Conectado a SGE-API' : 'Desconectado',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: _isOnline
-                                ? Colors.green[800]
-                                : SalonGlittColors.deepPurple,
-                          ),
-                        ),
-                        const Text(
-                          ApiConfig.baseUrl,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.black54, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _checkServerHealth,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: SalonGlittColors.royalPurple,
-                      foregroundColor: SalonGlittColors.lightGold,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(
-                          color: SalonGlittColors.metallicGold,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.sync, size: 16),
-                    label: const Text('Comprobar'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Tarjeta de Autenticación (Login / Registro)
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: Colors.white,
-                border: Border.all(
-                  color: SalonGlittColors.metallicGold.withOpacity(0.4),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: SalonGlittColors.hotPink.withOpacity(0.07),
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(22.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Cabecera
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            _isRegisterMode
-                                ? Icons.person_add
-                                : Icons.lock_person,
-                            color: SalonGlittColors.royalPurple,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: SalonGlittColors.deepPurple,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_apiService.isAuthenticated)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: SalonGlittColors.softPink,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: SalonGlittColors.metallicGold,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
+                        _buildBrandHeader(),
+                        const SizedBox(height: 28),
+                        if (isWide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.verified,
-                                color: SalonGlittColors.hotPink,
-                                size: 16,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Sesión Activa',
-                                style: TextStyle(
-                                  color: SalonGlittColors.royalPurple,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              Expanded(flex: 5, child: _buildWelcomePanel()),
+                              const SizedBox(width: 22),
+                              Expanded(flex: 6, child: _buildAuthPanel()),
                             ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (!_apiService.isAuthenticated) ...[
-                    // Formulario de Registro o Login
-                    if (_isRegisterMode) ...[
-                      // CAMPOS REGISTRO
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _regNombreController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nombre',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _regApellidoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Apellido',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
+                          )
+                        else ...[
+                          _buildWelcomePanel(),
+                          const SizedBox(height: 18),
+                          _buildAuthPanel(),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _regEmailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Correo Electrónico',
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
-                            color: SalonGlittColors.hotPink,
-                          ),
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _regTelefonoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono (Opcional)',
-                          prefixIcon: Icon(
-                            Icons.phone_outlined,
-                            color: SalonGlittColors.hotPink,
-                          ),
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _regPasswordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Contraseña (mínimo 8 caracteres)',
-                          prefixIcon: const Icon(
-                            Icons.lock_outline,
-                            color: SalonGlittColors.hotPink,
-                          ),
-                          border: const OutlineInputBorder(),
-                          isDense: true,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: SalonGlittColors.metallicGold,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      // Botón Registrarse
-                      Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          gradient: const LinearGradient(
-                            colors: [
-                              SalonGlittColors.royalPurple,
-                              SalonGlittColors.hotPink,
-                            ],
-                          ),
-                          border: Border.all(
-                            color: SalonGlittColors.metallicGold,
-                            width: 1.4,
-                          ),
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _handleRegister,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                          ),
-                          icon: const Icon(
-                            Icons.person_add,
-                            color: SalonGlittColors.lightGold,
-                          ),
-                          label: Text(
-                            _isLoading
-                                ? 'Registrando...'
-                                : 'Registrarme en SalonGlitt',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      // CAMPOS LOGIN
-                      TextField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Correo Electrónico (Email)',
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
-                            color: SalonGlittColors.hotPink,
-                          ),
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Contraseña',
-                          prefixIcon: const Icon(
-                            Icons.lock_outline,
-                            color: SalonGlittColors.hotPink,
-                          ),
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: SalonGlittColors.metallicGold,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Botón Iniciar Sesión
-                      Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          gradient: const LinearGradient(
-                            colors: [
-                              SalonGlittColors.royalPurple,
-                              SalonGlittColors.hotPink,
-                            ],
-                          ),
-                          border: Border.all(
-                            color: SalonGlittColors.metallicGold,
-                            width: 1.4,
-                          ),
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                          ),
-                          icon: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: SalonGlittColors.lightGold,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.login,
-                                  color: SalonGlittColors.lightGold,
-                                ),
-                          label: Text(
-                            _isLoading ? 'Conectando...' : 'Iniciar Sesión',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 12),
-                    // Cambiar entre Login y Registro
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isRegisterMode = !_isRegisterMode;
-                          });
-                        },
-                        child: Text(
-                          _isRegisterMode
-                              ? '¿Ya tienes cuenta? Inicia sesión aquí'
-                              : '¿No tienes cuenta? Regístrate aquí',
-                          style: const TextStyle(
-                            color: SalonGlittColors.royalPurple,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    // Usuario Autenticado
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: SalonGlittColors.softPink.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: SalonGlittColors.metallicGold,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            backgroundColor: SalonGlittColors.royalPurple,
-                            child: Icon(
-                              Icons.person,
-                              color: SalonGlittColors.lightGold,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${_apiService.currentUser?['nombre'] ?? 'Usuario'} ${_apiService.currentUser?['apellido'] ?? ''}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: SalonGlittColors.deepPurple,
-                                  ),
-                                ),
-                                Text(
-                                  _apiService.currentUser?['email'] ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        const SizedBox(height: 18),
+                        _buildApiStatus(),
+                        if (_apiService.isAuthenticated) ...[
+                          const SizedBox(height: 26),
+                          _buildServices(),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _fetchServicios,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: SalonGlittColors.royalPurple,
-                              foregroundColor: SalonGlittColors.lightGold,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(
-                                  color: SalonGlittColors.metallicGold,
-                                  width: 1.2,
-                                ),
-                              ),
+                        const SizedBox(height: 18),
+                        const Center(
+                          child: Text(
+                            'SalonGlitt · Cuidado con estilo',
+                            style: TextStyle(
+                              color: Colors.black45,
+                              fontSize: 12,
+                              letterSpacing: 0.3,
                             ),
-                            icon: const Icon(Icons.room_service_outlined),
-                            label: const Text('Ver Servicios'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _handleLogout,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: SalonGlittColors.hotPink,
-                              side: const BorderSide(
-                                color: SalonGlittColors.hotPink,
-                                width: 1.4,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Cerrar Sesión'),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Monitor de Respuestas
-            Container(
-              decoration: BoxDecoration(
-                color: SalonGlittColors.terminalBg,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: SalonGlittColors.metallicGold.withOpacity(0.5),
-                  width: 1.5,
+                  ),
                 ),
-              ),
-              padding: const EdgeInsets.all(18.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.auto_awesome,
-                        color: SalonGlittColors.metallicGold,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Monitor SGE-API',
-                        style: TextStyle(
-                          color: SalonGlittColors.lightGold,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isOnline
-                              ? SalonGlittColors.metallicGold
-                              : SalonGlittColors.hotPink,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(color: Colors.white24, height: 20),
-                  SelectableText(
-                    _statusMessage,
-                    style: const TextStyle(
-                      color: Color(0xFFFFEFA6),
-                      fontFamily: 'monospace',
-                      fontSize: 12.5,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
