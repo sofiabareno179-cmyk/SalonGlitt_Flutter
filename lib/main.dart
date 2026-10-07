@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'config/api_config.dart';
 import 'services/salon_glitt_service.dart';
 
@@ -8,16 +9,20 @@ void main() {
 
 class SalonGlittColors {
   // Paleta Morado, Rosa y Dorado
-  static const Color deepPurple = Color(0xFF2E0854);     // Morado profundo elegante
-  static const Color royalPurple = Color(0xFF5B1889);    // Morado intermedio
-  static const Color brightPurple = Color(0xFF7B1FA2);   // Morado vivo
-  static const Color hotPink = Color(0xFFE91E63);        // Rosa vibrante
-  static const Color softPink = Color(0xFFFCE4EC);       // Rosa pastel suave
-  static const Color lightBlush = Color(0xFFFAF5FA);     // Fondo suave
-  static const Color metallicGold = Color(0xFFD4AF37);   // Dorado clásico metálico
-  static const Color lightGold = Color(0xFFFFE082);      // Dorado brillante claro
-  static const Color darkGold = Color(0xFFA67C1E);       // Dorado oscuro para bordes
-  static const Color terminalBg = Color(0xFF180326);     // Morado oscuro para consola
+  static const Color deepPurple = Color(0xFF2E0854); // Morado profundo elegante
+  static const Color royalPurple = Color(0xFF5B1889); // Morado intermedio
+  static const Color brightPurple = Color(0xFF7B1FA2); // Morado vivo
+  static const Color hotPink = Color(0xFFE91E63); // Rosa vibrante
+  static const Color softPink = Color(0xFFFCE4EC); // Rosa pastel suave
+  static const Color lightBlush = Color(0xFFFAF5FA); // Fondo suave
+  static const Color metallicGold = Color(
+    0xFFD4AF37,
+  ); // Dorado clásico metálico
+  static const Color lightGold = Color(0xFFFFE082); // Dorado brillante claro
+  static const Color darkGold = Color(0xFFA67C1E); // Dorado oscuro para bordes
+  static const Color terminalBg = Color(
+    0xFF180326,
+  ); // Morado oscuro para consola
 }
 
 class SalonGlittApp extends StatelessWidget {
@@ -94,7 +99,8 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
   Future<void> _checkServerHealth() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Comprobando conexión con ${ApiConfig.baseUrl}/health...';
+      _statusMessage =
+          'Comprobando conexión con ${ApiConfig.baseUrl}/health...';
     });
 
     try {
@@ -136,7 +142,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
     });
 
     try {
-      final response = await _apiService.login(email: email, password: password);
+      final response = await _apiService.login(
+        email: email,
+        password: password,
+      );
       // Tras el login exitoso, cargamos el perfil del usuario
       final profile = await _apiService.getProfile();
 
@@ -152,7 +161,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
             backgroundColor: SalonGlittColors.royalPurple,
             content: Row(
               children: [
-                const Icon(Icons.auto_awesome, color: SalonGlittColors.metallicGold),
+                const Icon(
+                  Icons.auto_awesome,
+                  color: SalonGlittColors.metallicGold,
+                ),
                 const SizedBox(width: 8),
                 Text('¡Bienvenido a SalonGlitt, ${profile['nombre']}!'),
               ],
@@ -187,11 +199,24 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
     final password = _regPasswordController.text.trim();
     final telefono = _regTelefonoController.text.trim();
 
-    if (nombre.isEmpty || apellido.isEmpty || email.isEmpty || password.isEmpty) {
+    if (nombre.isEmpty ||
+        apellido.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: SalonGlittColors.hotPink,
           content: Text('Completa todos los campos obligatorios'),
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: SalonGlittColors.hotPink,
+          content: Text('La contraseña debe tener al menos 8 caracteres'),
         ),
       );
       return;
@@ -301,7 +326,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -394,13 +422,17 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                           ? Colors.green.withOpacity(0.15)
                           : SalonGlittColors.softPink,
                       border: Border.all(
-                        color: _isOnline ? Colors.green : SalonGlittColors.hotPink,
+                        color: _isOnline
+                            ? Colors.green
+                            : SalonGlittColors.hotPink,
                         width: 1.8,
                       ),
                     ),
                     child: Icon(
                       _isOnline ? Icons.check_circle : Icons.cloud_outlined,
-                      color: _isOnline ? Colors.green : SalonGlittColors.hotPink,
+                      color: _isOnline
+                          ? Colors.green
+                          : SalonGlittColors.hotPink,
                       size: 25,
                     ),
                   ),
@@ -414,17 +446,16 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: _isOnline ? Colors.green[800] : SalonGlittColors.deepPurple,
+                            color: _isOnline
+                                ? Colors.green[800]
+                                : SalonGlittColors.deepPurple,
                           ),
                         ),
                         const Text(
                           ApiConfig.baseUrl,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.black54, fontSize: 12),
                         ),
                       ],
                     ),
@@ -479,7 +510,9 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                       Row(
                         children: [
                           Icon(
-                            _isRegisterMode ? Icons.person_add : Icons.lock_person,
+                            _isRegisterMode
+                                ? Icons.person_add
+                                : Icons.lock_person,
                             color: SalonGlittColors.royalPurple,
                             size: 24,
                           ),
@@ -566,7 +599,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                         controller: _regEmailController,
                         decoration: const InputDecoration(
                           labelText: 'Correo Electrónico',
-                          prefixIcon: Icon(Icons.email_outlined, color: SalonGlittColors.hotPink),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: SalonGlittColors.hotPink,
+                          ),
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -576,7 +612,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                         controller: _regTelefonoController,
                         decoration: const InputDecoration(
                           labelText: 'Teléfono (Opcional)',
-                          prefixIcon: Icon(Icons.phone_outlined, color: SalonGlittColors.hotPink),
+                          prefixIcon: Icon(
+                            Icons.phone_outlined,
+                            color: SalonGlittColors.hotPink,
+                          ),
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -587,12 +626,17 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           labelText: 'Contraseña (mínimo 8 caracteres)',
-                          prefixIcon: const Icon(Icons.lock_outline, color: SalonGlittColors.hotPink),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: SalonGlittColors.hotPink,
+                          ),
                           border: const OutlineInputBorder(),
                           isDense: true,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                              _isPasswordVisible
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: SalonGlittColors.metallicGold,
                             ),
                             onPressed: () {
@@ -626,9 +670,14 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
                           ),
-                          icon: const Icon(Icons.person_add, color: SalonGlittColors.lightGold),
+                          icon: const Icon(
+                            Icons.person_add,
+                            color: SalonGlittColors.lightGold,
+                          ),
                           label: Text(
-                            _isLoading ? 'Registrando...' : 'Registrarme en SalonGlitt',
+                            _isLoading
+                                ? 'Registrando...'
+                                : 'Registrarme en SalonGlitt',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -642,7 +691,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                         controller: _emailController,
                         decoration: const InputDecoration(
                           labelText: 'Correo Electrónico (Email)',
-                          prefixIcon: Icon(Icons.email_outlined, color: SalonGlittColors.hotPink),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: SalonGlittColors.hotPink,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -652,11 +704,16 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           labelText: 'Contraseña',
-                          prefixIcon: const Icon(Icons.lock_outline, color: SalonGlittColors.hotPink),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: SalonGlittColors.hotPink,
+                          ),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                              _isPasswordVisible
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: SalonGlittColors.metallicGold,
                             ),
                             onPressed: () {
@@ -699,7 +756,10 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                                     color: SalonGlittColors.lightGold,
                                   ),
                                 )
-                              : const Icon(Icons.login, color: SalonGlittColors.lightGold),
+                              : const Icon(
+                                  Icons.login,
+                                  color: SalonGlittColors.lightGold,
+                                ),
                           label: Text(
                             _isLoading ? 'Conectando...' : 'Iniciar Sesión',
                             style: const TextStyle(
@@ -739,13 +799,18 @@ class _SalonGlittHomePageState extends State<SalonGlittHomePage> {
                       decoration: BoxDecoration(
                         color: SalonGlittColors.softPink.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: SalonGlittColors.metallicGold),
+                        border: Border.all(
+                          color: SalonGlittColors.metallicGold,
+                        ),
                       ),
                       child: Row(
                         children: [
                           const CircleAvatar(
                             backgroundColor: SalonGlittColors.royalPurple,
-                            child: Icon(Icons.person, color: SalonGlittColors.lightGold),
+                            child: Icon(
+                              Icons.person,
+                              color: SalonGlittColors.lightGold,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

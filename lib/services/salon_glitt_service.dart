@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
 import '../config/api_config.dart';
 
 class SalonGlittService {
@@ -26,7 +28,9 @@ class SalonGlittService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        throw Exception('Servidor respondió con [${response.statusCode}]: ${response.body}');
+        throw Exception(
+          'Servidor respondió con [${response.statusCode}]: ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Fallo al conectar con la API desplegada: $e');
@@ -42,14 +46,13 @@ class SalonGlittService {
     final url = Uri.parse('$baseUrl${ApiConfig.login}');
 
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -74,24 +77,28 @@ class SalonGlittService {
     String? telefono,
   }) async {
     final url = Uri.parse('$baseUrl${ApiConfig.register}');
+    final nombreCompleto = '$nombre $apellido'.trim();
 
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nombre': nombre,
-          'apellido': apellido,
-          'email': email,
-          'password': password,
-          if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'nombreuser': nombreCompleto,
+              'email': email,
+              'password': password,
+              if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        throw Exception('Error en registro [${response.statusCode}]: ${response.body}');
+        throw Exception(
+          'Error en registro [${response.statusCode}]: ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Fallo al registrar usuario: $e');
@@ -105,20 +112,24 @@ class SalonGlittService {
     }
 
     final url = Uri.parse('$baseUrl${ApiConfig.profile}');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-    ).timeout(const Duration(seconds: 8));
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_token',
+          },
+        )
+        .timeout(const Duration(seconds: 8));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final user = jsonDecode(response.body) as Map<String, dynamic>;
       _currentUser = user;
       return user;
     } else {
-      throw Exception('Error al obtener perfil [${response.statusCode}]: ${response.body}');
+      throw Exception(
+        'Error al obtener perfil [${response.statusCode}]: ${response.body}',
+      );
     }
   }
 
@@ -129,13 +140,15 @@ class SalonGlittService {
     }
 
     final url = Uri.parse('$baseUrl$endpoint');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-    ).timeout(const Duration(seconds: 8));
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_token',
+          },
+        )
+        .timeout(const Duration(seconds: 8));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
