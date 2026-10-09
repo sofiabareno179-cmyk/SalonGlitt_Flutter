@@ -6,10 +6,12 @@ import '../config/api_config.dart';
 
 class SalonGlittService {
   final String baseUrl;
+  final http.Client _client;
   String? _token;
   Map<String, dynamic>? _currentUser;
 
-  SalonGlittService({this.baseUrl = ApiConfig.baseUrl});
+  SalonGlittService({this.baseUrl = ApiConfig.baseUrl, http.Client? client})
+    : _client = client ?? http.Client();
 
   String? get token => _token;
   Map<String, dynamic>? get currentUser => _currentUser;
@@ -24,7 +26,9 @@ class SalonGlittService {
   Future<Map<String, dynamic>> checkHealth() async {
     final url = Uri.parse('$baseUrl${ApiConfig.healthCheck}');
     try {
-      final response = await http.get(url).timeout(const Duration(seconds: 8));
+      final response = await _client
+          .get(url)
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
@@ -46,7 +50,7 @@ class SalonGlittService {
     final url = Uri.parse('$baseUrl${ApiConfig.login}');
 
     try {
-      final response = await http
+      final response = await _client
           .post(
             url,
             headers: {'Content-Type': 'application/json'},
@@ -80,7 +84,7 @@ class SalonGlittService {
     final url = Uri.parse('$baseUrl${ApiConfig.register}');
 
     try {
-      final response = await http
+      final response = await _client
           .post(
             url,
             headers: {'Content-Type': 'application/json'},
@@ -112,7 +116,7 @@ class SalonGlittService {
     }
 
     final url = Uri.parse('$baseUrl${ApiConfig.profile}');
-    final response = await http
+    final response = await _client
         .get(
           url,
           headers: {
@@ -140,7 +144,7 @@ class SalonGlittService {
     }
 
     final url = Uri.parse('$baseUrl$endpoint');
-    final response = await http
+    final response = await _client
         .get(
           url,
           headers: {
