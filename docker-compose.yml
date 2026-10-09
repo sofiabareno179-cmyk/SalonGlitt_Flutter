@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8080:80"
+    environment:
+      - SERVICE_FQDN_SALON_GLITT_WEB_80
+    expose:
+      - "80"
     restart: unless-stopped
