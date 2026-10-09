@@ -1,4 +1,4 @@
-FROM instrumentisto/flutter:stable AS build
+FROM instrumentisto/flutter:3.41.6 AS build
 
 WORKDIR /app
 
