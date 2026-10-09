@@ -1,10 +1,8 @@
 services:
-  salon-glitt-web:
+  salonglitt-web:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - SERVICE_FQDN_SALON_GLITT_WEB_80
-    expose:
-      - "80"
+    ports:
+      - "8080:80"
     restart: unless-stopped

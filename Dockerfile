@@ -1,9 +1,9 @@
-FROM instrumentisto/flutter:3.41.6 AS build
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 
 WORKDIR /app
 
-COPY pubspec.* ./
-RUN flutter pub get
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get --enforce-lockfile
 
 COPY . .
 RUN flutter build web --release
@@ -14,4 +14,3 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build/web /usr/share/nginx/html
 
 EXPOSE 80
-
