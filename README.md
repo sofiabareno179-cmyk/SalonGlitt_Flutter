@@ -2,6 +2,17 @@
 
 A new Flutter project.
 
+## Ejecutar con Docker
+
+La imagen compila la aplicación Flutter para web y la sirve con Nginx.
+
+```sh
+docker compose up --build
+```
+
+Abre [http://localhost:8080](http://localhost:8080). Para detener el servicio,
+ejecuta `docker compose down`.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
