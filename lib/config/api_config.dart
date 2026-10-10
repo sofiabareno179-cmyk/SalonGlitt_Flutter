@@ -1,12 +1,14 @@
 class ApiConfig {
   // URL base de tu API desplegada (SGE-API / SalonGlitt)
-  static const String baseUrl = 'http://vqtkftbflcvjex3dh3gjyxx1.89.117.53.189.sslip.io';
+  static const String baseUrl =
+      'http://vqtkftbflcvjex3dh3gjyxx1.89.117.53.189.sslip.io';
 
   // Endpoints exactos de la API
   static const String healthCheck = '/health';
   static const String login = '/api/v1/auth/login';
   static const String register = '/api/v1/auth/register';
   static const String profile = '/api/v1/auth/me';
+  static const String profileFoto = '/api/v1/auth/me/foto';
 
   // Otros módulos disponibles en SalonGlitt
   static const String servicios = '/api/v1/servicios';
