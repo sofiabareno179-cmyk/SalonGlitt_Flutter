@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../config/api_config.dart';
 
@@ -155,5 +157,67 @@ class SalonGlittService {
     } else {
       throw Exception('Error [${response.statusCode}]: ${response.body}');
     }
+  }
+
+  /// Sube la foto de perfil del usuario autenticado (POST /api/v1/auth/me/foto)
+  Future<void> uploadProfilePhoto(
+    Uint8List bytes, {
+    required String fileName,
+    String? mimeType,
+  }) async {
+    if (_token == null) {
+      throw Exception('No has iniciado sesión.');
+    }
+
+    final uri = Uri.parse('$baseUrl${ApiConfig.profileFoto}');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $_token'
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'foto',
+          bytes,
+          filename: fileName,
+          contentType: MediaType('image', _mimeSubtype(fileName, mimeType)),
+        ),
+      );
+
+    final streamed = await request.send().timeout(const Duration(seconds: 20));
+    final response = await http.Response.fromStream(streamed);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final body = response.body.trim();
+      if (body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(body);
+          if (decoded is Map<String, dynamic>) {
+            _currentUser = {...?_currentUser, ...decoded};
+          }
+        } catch (_) {
+          // La API puede responder vacía o sin JSON.
+        }
+      }
+    } else {
+      throw Exception(
+        'Error al subir foto [${response.statusCode}]: ${response.body}',
+      );
+    }
+  }
+
+  String _mimeSubtype(String fileName, String? mimeType) {
+    if (mimeType != null && mimeType.isNotEmpty) {
+      final parts = mimeType.split('/');
+      if (parts.length == 2) return parts.last.toLowerCase();
+    }
+    final extension = fileName.split('.').last.toLowerCase();
+    const known = <String, String>{
+      'jpg': 'jpeg',
+      'jpeg': 'jpeg',
+      'png': 'png',
+      'gif': 'gif',
+      'webp': 'webp',
+      'bmp': 'bmp',
+      'svg': 'svg+xml',
+    };
+    return known[extension] ?? 'png';
   }
 }
